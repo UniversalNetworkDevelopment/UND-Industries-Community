@@ -1,0 +1,29 @@
+title: "[General] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Welcome to UND Industries Community. This is a public forum. Do not post passwords, API keys, tokens, private source code, customer data, internal documents, or unpublished infrastructure details.
+  - type: textarea
+    id: topic
+    attributes:
+      label: What would you like to discuss?
+      description: Give enough public context for the community to understand the topic.
+      placeholder: Share the question, idea, or topic here.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Relevant public context
+      description: Optional links, screenshots, product versions, or other non-sensitive context.
+      placeholder: Add only information that is safe to publish publicly.
+    validations:
+      required: false
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Public-posting check
+      options:
+        - label: I have not included credentials, private code, personal data, internal documents, or other sensitive information.
+          required: true

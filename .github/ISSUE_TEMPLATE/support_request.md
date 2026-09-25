@@ -1,7 +1,7 @@
 ---
 name: Support request
 about: Ask for help with a public-facing UND product or service
- title: "[Support] "
+title: "[Support] "
 labels: ""
 assignees: ""
 ---

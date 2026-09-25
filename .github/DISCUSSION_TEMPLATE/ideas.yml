@@ -1,0 +1,40 @@
+title: "[Idea] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve UND Industries. Keep proposals focused on public product behavior and community needs. Do not include proprietary implementation details or secrets.
+  - type: input
+    id: summary
+    attributes:
+      label: Idea in one sentence
+      placeholder: What should UND add, change, or improve?
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or opportunity
+      description: What user problem would this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Suggested approach
+      description: Describe the desired experience or outcome. Avoid private or security-sensitive implementation details.
+    validations:
+      required: true
+  - type: textarea
+    id: benefit
+    attributes:
+      label: Who benefits and how?
+    validations:
+      required: false
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Public-posting check
+      options:
+        - label: This post contains no credentials, private code, personal data, internal documents, or confidential information.
+          required: true

@@ -51,7 +51,7 @@ jobs:
         run: |
           set -uo pipefail
           set +e
-          docker run --rm             -v "$PWD:/repo"             ghcr.io/trufflesecurity/trufflehog@sha256:52e67fef4d054ecff5c2ce4b4ae376626d1ef54aa0898b53cac19c25e92e14db             git file:///repo --fail --no-update --only-verified             2>&1 | tee trufflehog.log
+          docker run --rm             -v "$PWD:/repo"             ghcr.io/trufflesecurity/trufflehog@sha256:52e67fef4d054ecff5c2ce4b4ae376626d1ef54aa0898b53cac19c25e92e14db             git file:///repo --fail --no-update --results=verified,unknown,unverified             2>&1 | tee trufflehog.log
           scanner_status=${PIPESTATUS[0]}
           set -e
 
@@ -78,3 +78,30 @@ jobs:
           PY
 
           exit "$scanner_status"
+
+  protected-paths:
+    name: Protected Paths Guard
+    # Fails a PR that DELETES governance/security files, whoever authored it (human or AI agent).
+    # Intentional removals: the owner adds the label `protected-change-approved` to the PR.
+    if: github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'protected-change-approved')
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Reject deletion of protected paths
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          removed="$(git diff --name-only --diff-filter=D "$BASE_SHA"...HEAD -- .github AGENTS.md CLAUDE.md SECURITY.md || true)"
+          if [ -n "$removed" ]; then
+            echo "::error::This PR deletes protected governance/security files:"
+            printf '%s\n' "$removed"
+            echo "If this is intentional, the owner must add the label protected-change-approved."
+            exit 1
+          fi
+          echo "No protected paths deleted."

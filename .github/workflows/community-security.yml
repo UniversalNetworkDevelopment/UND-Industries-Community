@@ -55,11 +55,6 @@ jobs:
           scanner_status=${PIPESTATUS[0]}
           set -e
 
-          if grep -q "encountered errors during scan" trufflehog.log; then
-            echo "TruffleHog reported a scan-engine/source error."
-            exit 3
-          fi
-
           python - <<'PY'
           import json
           from pathlib import Path

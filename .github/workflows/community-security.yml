@@ -5,6 +5,8 @@ on:
     branches: ["main"]
   pull_request:
     branches: ["main"]
+    # labeled/unlabeled: re-run when the owner adds `protected-change-approved` (Protected Paths Guard override).
+    types: [opened, synchronize, reopened, labeled, unlabeled]
   schedule:
     - cron: "30 6 * * 1"
   workflow_dispatch:

@@ -1,0 +1,85 @@
+name: Community Repository Security
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  schedule:
+    - cron: "30 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: community-security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  secret-scan:
+    name: Full Git History Secret Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Reject tracked high-risk credential file types
+        shell: bash
+        run: |
+          set -euo pipefail
+          bad="$(git ls-files | grep -Ei '(^|/)(\.env|id_rsa|id_ed25519)$|\.(pem|p12|pfx|key)$' || true)"
+          if [ -n "$bad" ]; then
+            echo "Tracked high-risk credential-like filenames detected:"
+            printf '%s\n' "$bad"
+            exit 2
+          fi
+
+      - name: Prove history exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          count="$(git rev-list --all --count)"
+          echo "Commit count available to scanner: $count"
+          test "$count" -gt 0
+
+      - name: Scan complete repository history
+        shell: bash
+        run: |
+          set -uo pipefail
+          set +e
+          docker run --rm             -v "$PWD:/repo"             ghcr.io/trufflesecurity/trufflehog@sha256:52e67fef4d054ecff5c2ce4b4ae376626d1ef54aa0898b53cac19c25e92e14db             git file:///repo --fail --no-update --only-verified             2>&1 | tee trufflehog.log
+          scanner_status=${PIPESTATUS[0]}
+          set -e
+
+          if grep -q "encountered errors during scan" trufflehog.log; then
+            echo "TruffleHog reported a scan-engine/source error."
+            exit 3
+          fi
+
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          lines = Path("trufflehog.log").read_text(
+              encoding="utf-8", errors="replace"
+          ).splitlines()
+          summaries = [
+              line.split("finished scanning\t", 1)[1]
+              for line in lines
+              if "finished scanning\t" in line
+          ]
+          if not summaries:
+              raise SystemExit("TruffleHog emitted no finished-scanning summary")
+          summary = json.loads(summaries[-1])
+          chunks = int(summary.get("chunks", 0))
+          scanned_bytes = int(summary.get("bytes", 0))
+          print(f"TruffleHog coverage: chunks={chunks} bytes={scanned_bytes}")
+          if chunks <= 0 or scanned_bytes <= 0:
+              raise SystemExit("TruffleHog scanned zero intended content")
+          PY
+
+          exit "$scanner_status"
